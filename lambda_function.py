@@ -8,7 +8,7 @@ import ninjarmmpy
 import boto3
 
 
-def return_servers_no_av(key: str, secret: str) -> str:
+def return_servers_report(key: str, secret: str) -> str:
     """Returns a report of devices without anti-virus in CSV format.
     Keyword arguments:
     key:    str     -- NinjaRMM API Key ID
@@ -18,11 +18,8 @@ def return_servers_no_av(key: str, secret: str) -> str:
         AccessKeyID=key,
         SecretAccessKey=secret
     )
-    print('Getting device IDs for all servers without anti-virus...')
-    device_ids = client.getGroupDeviceIds(id=94)
-    print('Getting device information for each device...')
+    device_ids = client.getGroupDeviceIds(id=os.getenv(key='DEVICE_GROUP'))
     devices = [client.getDevice(id=i) for i in device_ids]
-    print('Writing device details to CSV file...')
     output = []
     with StringIO() as f:
         fields = [
@@ -47,7 +44,6 @@ def return_servers_no_av(key: str, secret: str) -> str:
             }
             output.append(row)
         writer.writerows(output)
-        print(f'Number of servers: {len(output)}')
         return f.getvalue()
 
 
@@ -59,7 +55,7 @@ def lambda_handler(event, context):
     )
     if not all((key, secret, bucket)):
         exit(code=-3)
-    servers = return_servers_no_av(key, secret)
+    servers = return_servers_report(key, secret)
     s3 = boto3.resource('s3')
     s3.Bucket(bucket).put_object(
         Key=f'{datetime.today()}.csv',
